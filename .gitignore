@@ -1,0 +1,28 @@
+# Logs (generated at runtime)
+*.log
+
+
+# Environment variables (secrets)
+.env
+.env.*
+
+# Allow template
+!.env.example
+
+# State files (runtime memory)
+state/
+*.state
+
+
+# Sensitive configs
+sasl_passwd
+
+
+# Temporary files
+*.tmp
+/tmp/
+
+
+# OS-specific files
+.DS_Store
+Thumbs.db
