@@ -1,199 +1,210 @@
-# Linux System Monitor — Linux Monitoring, Server Alerting & DevOps Health Checks
-## Lightweight Linux Server Monitoring Tool for DevOps, System Health Tracking, and Intelligent Alerting
+# Linux System Monitor
 
-Never miss a critical system issue again.
+A lightweight Linux observability system built with Bash that monitors
+server health, detects security threats, and delivers intelligent
+state-based alerts — without relying on heavy external tools.
 
-This project is a Linux monitoring and alerting system built with Bash scripting that continuously tracks CPU usage, memory consumption, disk utilization, and SSH security events.
+Built by [Samuel Kanyi](https://github.com/sammygithinji)
 
-It implements state-based intelligent alerting, ensuring notifications are sent only when system state changes occur, eliminating alert fatigue and improving operational awareness.
+---
 
-Designed for DevOps engineers, Linux administrators, and cloud practitioners, this system demonstrates real-world concepts in monitoring, incident response, automation, and security awareness without relying on heavy external tools.
+## What it does
 
-## System Overview
-```
-Server Metrics → monitor.sh → State Evaluation → State Changed?
-                               │
-                      YES ─────┴───── NO
-                       │              │
-               Send Alert        Silent Mode
-                       │
-                   Log Event
-```
-## User Instructions (Quick Setup)
+- Monitors CPU, memory, disk, and SSH attack attempts in real time
+- Sends alerts only when system state changes — no spam, no noise
+- Detects recovery and notifies when systems return to normal
+- Auto-restarts failed services (NGINX, MySQL)
+- Delivers alerts via Slack and email simultaneously
+- Logs every event with timestamps for audit and review
+- Runs automatically every 5 minutes via cron
 
-### 1. Clone and Prepare
+---
 
-git clone https://github.com/your-username/linux-system-monitor.git
+## System architecture
+Server Metrics ──► monitor.sh ──► check_state()
+│
+State changed?
+YES │        │ NO
+▼        ▼
+send_alert()  Silent
+Slack + Email
+│
+log event ──► monitor.log
 
+---
+
+## Quick start
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/sammygithinji/linux-system-monitor.git
 cd linux-system-monitor
-
 chmod +x monitor.sh
+```
 
-### 2. Install Dependencies
+### 2. Install dependencies
 
+```bash
 sudo apt update
+sudo apt install postfix mailutils curl -y
+```
 
-sudo apt install postfix mailutils -y
+### 3. Configure your settings
 
-### 3. Configure Email Alerts (Gmail SMTP)
+```bash
+cp config/monitor.conf.example config/monitor.conf
+nano config/monitor.conf
+```
 
-sudo nano /etc/postfix/sasl_passwd
+Set your values:
 
-Add:
+```bash
+CPU_THRESHOLD=80
+MEM_THRESHOLD=80
+DISK_THRESHOLD=90
+SSH_FAIL_THRESHOLD=5
+ALERT_EMAIL="you@gmail.com"
+SLACK_WEBHOOK="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+```
 
-[smtp.gmail.com]:587 your-email@gmail.com:your-app-password
+### 4. Run a status check
 
-Apply configuration:
+```bash
+./monitor.sh --status
+```
 
-sudo chmod 600 /etc/postfix/sasl_passwd
+Expected output:
+============================================
+Linux System Monitor — Current Status
+CPU    : 11%
+Memory : 47%
+Disk   : 14%
+SSH    : NORMAL
+NGINX  : active
 
-sudo postmap /etc/postfix/sasl_passwd
+### 5. Run the monitor manually
 
-sudo systemctl restart postfix
-
-### 4. Set Alert Email
-
-nano monitor.sh
-
-ALERT_EMAIL="your-email@example.com"
-
-### 5. Test the System
-
+```bash
 ./monitor.sh
+```
 
-Simulate load or failure (example):
+### 6. Automate with cron
 
-sudo stress --cpu 4
-
-### 6. Automate with Cron
-
+```bash
 crontab -e
+```
 
-Add:
+Add this line:
 
+```bash
 */5 * * * * /home/$USER/linux-system-monitor/monitor.sh
-
-## Developer Notes
-
-### Project Structure
 ```
+
+---
+
+## Project structure
 linux-system-monitor/
-├── monitor.sh        # Core monitoring engine
-├── README.md         # Documentation
-├── .gitignore        # Ignore logs, state files, secrets
-└── state/            # Auto-generated state tracking files
+├── monitor.sh              # Core monitoring engine
+├── config/
+│   └── monitor.conf        # All thresholds and credentials
+├── state/                  # Auto-generated state tracking files
+│   ├── cpu.state
+│   ├── memory.state
+│   ├── disk.state
+│   └── ssh.state
+├── monitor.log             # Event log with timestamps
+└── README.md
+
+---
+
+## Alert behaviour
+
+| Event              | Result                        |
+|--------------------|-------------------------------|
+| Normal operation   | No alert sent                 |
+| Threshold breached | Alert sent once via Slack + email |
+| Issue persists     | No repeated alerts            |
+| Recovery detected  | Recovery alert sent           |
+| Service goes down  | Auto-restart attempted        |
+
+---
+
+## Monitored components
+
+| Component | Method                        | Threshold |
+|-----------|-------------------------------|-----------|
+| CPU       | top -bn1                      | 80%       |
+| Memory    | free                          | 80%       |
+| Disk      | df /                          | 90%       |
+| SSH       | journalctl (5-minute window)  | 5 failures|
+| NGINX     | systemctl is-active           | Any down  |
+| MySQL     | systemctl is-active           | Any down  | Optional |
+
+---
+
+## How state-based alerting works
+
+Most monitoring scripts send an alert every time they run.
+This system only alerts when state changes — from NORMAL to HIGH,
+or from HIGH back to NORMAL.
+
+State is persisted between runs using files in the `state/` directory.
+This means zero alert spam, even if a problem lasts for hours.
+
+This is the same pattern used by enterprise tools like
+Datadog, PagerDuty, and Prometheus.
+
+---
+
+## Extending the system
+
+Add a new metric by following this pattern:
+
+```bash
+# 1. Capture the value
+MY_VALUE=$(your command here)
+
+# 2. Evaluate state
+if [ "$MY_VALUE" -gt "$MY_THRESHOLD" ]; then
+  STATE="HIGH"
+else
+  STATE="NORMAL"
+fi
+
+# 3. Alert on change
+if check_state "my_metric" "$STATE"; then
+  if [ "$STATE" = "HIGH" ]; then
+    send_alert "MY METRIC ALERT" "Value: ${MY_VALUE}"
+  else
+    send_alert "MY METRIC RECOVERY" "Value: ${MY_VALUE}"
+  fi
+  echo "$(date) | MY_METRIC | $STATE | ${MY_VALUE}" >> "$LOG_FILE"
+fi
 ```
-### Core Implementation
 
-Bash scripting → monitoring logic and automation
+---
 
-State tracking system → prevents alert spam
+## Planned improvements
 
-Postfix + Mailutils → email alert delivery
+- Slack rich message formatting with severity colours
+- Prometheus metrics export endpoint
+- Docker containerisation
+- Multi-server monitoring via SSH
+- Config-driven thresholds via YAML
+- Web dashboard for log visualisation
 
-Cron jobs → scheduling and automation
+---
 
-Log files → system observability and audit
+## Author
 
-### Monitored Components
-```
-Component	        Function
-CPU	           Detects high utilization
-Memory	       Tracks RAM usage
-Disk	         Monitors root disk usage
-SSH	           Detects repeated failed login attempts
-```
-### Extending the System
+**Samuel Kanyi**
+DevOps and Cloud Engineering
 
-Add webhook alerts:
+GitHub: [sammygithinji](https://github.com/sammygithinji)
 
-curl -X POST https://your-api.com/webhook \
-
--d "{\"metric\":\"cpu\",\"status\":\"high\"}"
-
-Monitor additional metrics or services by extending the script logic.
-
-### Expected Behavior
-```
-Event	             Result
-Normal operation	 No alert
-Threshold breach	 Alert sent once
-Issue persists	   No repeated alerts
-Recovery	         Recovery alert sent
-```
-## Logs & State Management
-
-### Logs:
-
-~/monitor.log
-
-### State Files (auto-generated):
-```
-state/
-├── cpu.state
-├── memory.state
-├── disk.state
-├── ssh.state
-```
-
-These files ensure alerts are triggered only on state transitions.
-
-## Security & Best Practices
-
-Prevents alert flooding using state-based logic
-
-Avoids hardcoding sensitive credentials
-
-Supports environment-based configuration
-
-Provides basic SSH attack visibility
-
-## Known Limitations
-
-SSH detection is log-based (no time-window optimization yet)
-
-No graphical dashboard (CLI-based monitoring only)
-
-Email delivery depends on correct Postfix configuration
-
-Single-node monitoring (no multi-server aggregation)
-
-## Future Improvements
-
-Config-driven monitoring (YAML/JSON)
-
-Slack / Discord / Webhook integrations
-
-Prometheus metrics export
-
-Docker containerization
-
-Multi-server monitoring support
-
-## Contributing
-
-### Contributions are welcome:
-
-Fork the repository
-
-Create a feature branch
-
-Submit a pull request
-
-## Support
-
-If this project helped you build or understand monitoring systems, consider supporting its development.
-
-Sharing, starring, or contributing helps improve practical open-source DevOps tools.
+---
 
 ## License
 
 MIT License — free to use, modify, and distribute.
-
-## Author
-
-### Samuel Githinji
-
-DevOps & Cloud Engineering (In Progress)
-
-Kenya
