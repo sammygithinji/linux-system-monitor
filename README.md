@@ -19,7 +19,7 @@ Built by [Samuel Kanyi](https://github.com/sammygithinji)
 - Runs automatically every 5 minutes via cron
 
 ---
-
+```
 ## System architecture
 Server Metrics ──► monitor.sh ──► check_state()
 │
@@ -30,7 +30,7 @@ send_alert()  Silent
 Slack + Email
 │
 log event ──► monitor.log
-
+```
 ---
 
 ## Quick start
@@ -73,7 +73,7 @@ SLACK_WEBHOOK="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 ```bash
 ./monitor.sh --status
 ```
-
+```
 Expected output:
 ============================================
 Linux System Monitor — Current Status
@@ -82,7 +82,7 @@ Memory : 47%
 Disk   : 14%
 SSH    : NORMAL
 NGINX  : active
-
+```
 ### 5. Run the monitor manually
 
 ```bash
@@ -102,7 +102,7 @@ Add this line:
 ```
 
 ---
-
+```
 ## Project structure
 linux-system-monitor/
 ├── monitor.sh              # Core monitoring engine
@@ -115,8 +115,8 @@ linux-system-monitor/
 │   └── ssh.state
 ├── monitor.log             # Event log with timestamps
 └── README.md
-
----
+```
+```
 
 ## Alert behaviour
 
@@ -128,7 +128,7 @@ linux-system-monitor/
 | Recovery detected  | Recovery alert sent           |
 | Service goes down  | Auto-restart attempted        |
 
----
+
 
 ## Monitored components
 
@@ -140,16 +140,17 @@ linux-system-monitor/
 | SSH       | journalctl (5-minute window)  | 5 failures|
 | NGINX     | systemctl is-active           | Any down  |
 | MySQL     | systemctl is-active           | Any down  | Optional |
-
----
+```
 
 ## How state-based alerting works
 
 Most monitoring scripts send an alert every time they run.
+
 This system only alerts when state changes — from NORMAL to HIGH,
 or from HIGH back to NORMAL.
 
 State is persisted between runs using files in the `state/` directory.
+
 This means zero alert spam, even if a problem lasts for hours.
 
 This is the same pattern used by enterprise tools like
@@ -183,15 +184,20 @@ if check_state "my_metric" "$STATE"; then
 fi
 ```
 
----
+
 
 ## Planned improvements
 
 - Slack rich message formatting with severity colours
+
 - Prometheus metrics export endpoint
+
 - Docker containerisation
+
 - Multi-server monitoring via SSH
+
 - Config-driven thresholds via YAML
+
 - Web dashboard for log visualisation
 
 ---
@@ -199,6 +205,7 @@ fi
 ## Author
 
 **Samuel Kanyi**
+
 DevOps and Cloud Engineering
 
 GitHub: [sammygithinji](https://github.com/sammygithinji)
