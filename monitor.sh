@@ -1,10 +1,11 @@
+
 #!/bin/bash
 set -euo pipefail
 
 #Load config
 source "$(dirname $0)/config/monitor.conf"
 
-#Directorie
+#Directories
 mkdir -p "$STATE_DIR"
 mkdir -p "$(dirname $LOG_FILE)"
 
@@ -16,7 +17,7 @@ send_alert() {
  #Email
   echo "$message" | mail -s "$subject" "$ALERT_EMAIL"
 
-  
+
 # Slack (only fires if SLACK_WEBHOOK is set in config)
   if [[ -n "$SLACK_WEBHOOK" ]]; then
     curl -s -X POST "$SLACK_WEBHOOK" \
@@ -140,8 +141,9 @@ fi
 
 
 #SSH attack detection
-RECENT_FAILS=$(journalctl -u ssh --since "5 minutes ago" 2>/dev/null | \
-  grep "Failed password" | wc -l)
+SSH_LOG=$(journalctl -u ssh --since "5 minutes ago" 2>/dev/null)
+RECENT_FAILS=$(echo "$SSH_LOG" | grep -c "Failed password" || true)
+RECENT_FAILS="${RECENT_FAILS:-0}"
 
 if [ "$RECENT_FAILS" -gt "$SSH_FAIL_THRESHOLD" ]; then
   STATE="ATTACK"
